@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.log
+*.jpg
+*.png
+*.mp4
