@@ -1,3 +1,4 @@
+import os
 import subprocess
 import time
 
@@ -6,7 +7,7 @@ save_dir = "/home/gle/ESE4970/grass_output"
 timestamp = time.strftime("%Y%m%d-%H%M%S")
 image_path = os.path.join(save_dir, f"test_cam_{timestamp}.jpg")
 
-
+time.sleep(5)
 # Capture image with 2-second preview
 subprocess.run(["rpicam-still", "-t", "2000", "-o", image_path])
 
