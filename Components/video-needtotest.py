@@ -2,7 +2,7 @@ import os
 import subprocess
 import time
 
-record_time = 10
+record_time = 60
 save_dir = "/home/gle/ESE4970/grass_output"
 
 os.makedirs(save_dir, exist_ok=True)
