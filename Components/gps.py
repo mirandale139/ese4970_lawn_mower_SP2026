@@ -29,7 +29,7 @@ def parse_sentence(sentence):
 #my_sentence = '$GPRMC,081836,A,3751.65,S,14507.36,E,000.0,360.0,130998,011.3,E*62'
 
 my_gps = MicropyGPS()
-status = False
+status = True
 last_lat = None
 last_lon = None
 
@@ -60,14 +60,14 @@ while 1:
 
     lat = my_gps.latitude
     lon = my_gps.longitude
-
+    time = datetime.now()
     # Check if valid fix
     valid_fix = (
         my_gps.fix_type >= 2 and lat[2] is not None and lon[2] is not None)
 
     if status:
     # 🔍 KEEP EVERYTHING EXACTLY THE SAME
-        print("\n{datetime.now()} - Satellites in view/ Fix type/ use:",
+        print(f"{time} - Satellites in view/ Fix type/ use:",
           my_gps.satellites_in_view,
           my_gps.fix_type,
           my_gps.satellites_in_use)
@@ -79,8 +79,7 @@ while 1:
     else:
     # 🚀 Only print when GPS actually updates position
         if valid_fix and (lat != last_lat or lon != last_lon):
-
-            print("\n{datetime.now()} - Satellites in view/ Fix type/ use:",
+            print(f"{time} - Satellites in view/ Fix type/ use:",
               my_gps.satellites_in_view,
               my_gps.fix_type,
               my_gps.satellites_in_use)
