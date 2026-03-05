@@ -5,7 +5,7 @@ import time
 # =============================
 # USER SETTINGS
 # =============================
-record_time = 10   # seconds (set to 0 for manual stop)
+record_time = 60   # seconds (set to 0 for manual stop)
 
 save_dir = "/home/gle/ESE4970/grass_output"
 
