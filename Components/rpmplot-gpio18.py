@@ -1,6 +1,8 @@
 import RPi.GPIO as GPIO
 import time
 import matplotlib.pyplot as plt
+import os
+from datetime import datetime
 
 # Configuration
 PIN = 18
@@ -44,7 +46,7 @@ GPIO.add_event_detect(PIN, GPIO.FALLING, callback=calculate_speed, bouncetime=50
 
 print("Wheel Speed Monitor Started. Spin the wheel! (Ctrl+C to stop and generate plot)")
 
-# Record the start time so the X-axis starts at 0 seconds
+# Record the start time so the X-axis starts at 0
 start_time = time.time()
 
 try:
@@ -74,21 +76,24 @@ except KeyboardInterrupt:
     
     print("Generating plot...")
     
-    # Create a figure with 3 subplots sharing the same X-axis
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8), sharex=True)
+    # Create a figure with 3 subplots (sharex removed due to different time units)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 10))
     
-    # Subplot 1: RPM
-    ax1.plot(time_data, rpm_data, color='tab:red', linewidth=2)
-    ax1.set_ylabel('RPM')
+    # Subplot 1: RPS (Top)
+    ax1.plot(time_data, rps_data, color='tab:green', linewidth=2)
+    ax1.set_ylabel('RPS')
+    ax1.set_xlabel('Time (seconds)')
     ax1.set_title('Wheel Metrics Over Time')
     ax1.grid(True, linestyle='--', alpha=0.7)
     
-    # Subplot 2: RPS
-    ax2.plot(time_data, rps_data, color='tab:green', linewidth=2)
-    ax2.set_ylabel('RPS')
+    # Subplot 2: RPM (Middle - Converted to minutes for X-axis)
+    time_data_mins = [t / 60.0 for t in time_data]
+    ax2.plot(time_data_mins, rpm_data, color='tab:red', linewidth=2)
+    ax2.set_ylabel('RPM')
+    ax2.set_xlabel('Time (minutes)')
     ax2.grid(True, linestyle='--', alpha=0.7)
     
-    # Subplot 3: Linear Speed
+    # Subplot 3: Linear Speed (Bottom)
     ax3.plot(time_data, speed_data, color='tab:blue', linewidth=2)
     ax3.set_ylabel('Speed (m/s)')
     ax3.set_xlabel('Time (seconds)')
@@ -97,7 +102,13 @@ except KeyboardInterrupt:
     # Adjust layout so labels don't overlap
     plt.tight_layout()
     
-    # Save the plot as an image
-    output_filename = "wheel_metrics_plot.png"
+    # Setup directory and save
+    output_dir = os.path.expanduser("~/ESE4970/rpm_output_plots")
+    os.makedirs(output_dir, exist_ok=True)  # Creates the folder safely if it doesn't exist
+    
+    # Generate timestamp for unique filename
+    timestamp = datetime.now().strftime("%m%d_%H%M%S")
+    output_filename = os.path.join(output_dir, f"wheel_metrics_{timestamp}.png")
+    
     plt.savefig(output_filename, dpi=300)
-    print(f"Success! Plot saved to the current directory as: {output_filename}")
+    print(f"Success! Plot saved to: {output_filename}")
