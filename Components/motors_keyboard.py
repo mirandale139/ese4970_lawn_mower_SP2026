@@ -48,13 +48,13 @@ def main(stdscr):
             
         elif key == curses.KEY_LEFT:
             stdscr.addstr(3, 0, "Status: TURN LEFT")
-            left_wheel.value = 2 * p
-            right_wheel.value = 2 * p
+            left_wheel.value = - 2 * p
+            right_wheel.value = - 2 * p
             
         elif key == curses.KEY_RIGHT:
             stdscr.addstr(3, 0, "Status: TURN RIGHT")
-            left_wheel.value = -2 * p
-            right_wheel.value = -2 * p
+            left_wheel.value =  p
+            right_wheel.value =  p
             
         elif key == -1: # No key pressed
             pass
