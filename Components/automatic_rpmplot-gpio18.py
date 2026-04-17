@@ -3,6 +3,7 @@ from gpiozero import Servo
 import time
 import matplotlib.pyplot as plt
 import os
+import csv
 from datetime import datetime
 
 # ==========================================
@@ -27,11 +28,16 @@ rpm = 0.0
 rps = 0.0
 speed_mps = 0.0
 
-# Lists to store data for plotting
-time_data = []
-rpm_data = []
-rps_data = []
-speed_data = []
+time_data, rpm_data, rps_data, speed_data = [], [], [], []
+
+# Create directories
+output_dir = os.path.expanduser("~/ESE4970/rpm_output_plots")
+os.makedirs(output_dir, exist_ok=True) 
+
+# Generate timestamps for files
+timestamp = datetime.now().strftime("%m%d_%H%M%S")
+csv_filename = os.path.join(output_dir, f"wheel_data_{timestamp}.csv")
+plot_filename = os.path.join(output_dir, f"wheel_metrics_{timestamp}.png")
 
 # ==========================================
 # 3. Sensor Interrupt Function
@@ -59,105 +65,105 @@ left_wheel.mid()
 right_wheel.mid()
 
 start_time = time.time()
-current_motor_val = 0.0  # Tracks actual applied power for smooth ramping
 
-try:
-    while True:
-        elapsed_time = time.time() - start_time
-        
-        # --- A. MOTOR CONTROL LOGIC ---
-        # 1-minute automated run profile
-        if elapsed_time < 3:
-            target_val = 0.0   # Arming (3 seconds)
-        elif elapsed_time < 18:
-            target_val = 0.15  # Phase 1 speed
-        elif elapsed_time < 33:
-            target_val = 0.25  # Phase 2 speed
-        elif elapsed_time < 48:
-            target_val = 0.35  # Phase 3 speed
-        elif elapsed_time < 63:
-            target_val = 0.45  # Phase 4 speed
-        else:
-            print("1-minute test complete!")
-            break # Exit loop to trigger the plotting
+# Open CSV File for writing
+with open(csv_filename, mode='w', newline='') as csv_file:
+    csv_writer = csv.writer(csv_file)
+    csv_writer.writerow(['Time_s', 'Target_Power_Pct', 'RPM', 'RPS', 'Speed_mps'])
+
+    try:
+        while True:
+            elapsed_time = time.time() - start_time
             
-        # Slew rate limiter: Smoothly ramp up to the target speed to avoid jerking
-        if current_motor_val < target_val:
-            current_motor_val += 0.02  # Increase slowly every 0.5s
-            if current_motor_val > target_val:
-                current_motor_val = target_val
+            # --- A. SMOOTH MOTOR CONTROL PROFILE (~3 Minutes) ---
+            if elapsed_time < 3:
+                # 0 to 3s: Arming sequence
+                target_val = 0.0   
+            elif elapsed_time < 78:
+                # 3s to 78s (1m 15s): Smoothly ramp from 0 to 0.90
+                target_val = (elapsed_time - 3) * (0.90 / 75.0)
+            elif elapsed_time < 108:
+                # 78s to 108s (30s hold): Hold steady at 90%
+                target_val = 0.90  
+            elif elapsed_time < 183:
+                # 108s to 183s (1m 15s): Smoothly ramp down from 0.90 to 0
+                target_val = 0.90 - ((elapsed_time - 108) * (0.90 / 75.0))
+            elif elapsed_time < 188:
+                # 183s to 188s: Final 5-second dead stop before exit
+                target_val = 0.0
+            else:
+                print("3-minute smooth ramp test complete!")
+                break
                 
-        # Apply the value to the motors
-        if target_val == 0.0:
-            left_wheel.mid()
-            right_wheel.mid()
-        else:
-            # Safely apply the -2x multiplier for the left wheel, capping at -1.0
-            left_val = max(-1.0, -2 * current_motor_val)
-            right_wheel.value = current_motor_val
-            left_wheel.value = left_val
+            # Safety clamp to ensure values strictly stay between 0.0 and 0.90
+            target_val = max(0.0, min(0.90, target_val))
+                    
+            # Apply to motors
+            if target_val == 0.0:
+                left_wheel.mid()
+                right_wheel.mid()
+            else:
+                # Safely cap the left wheel at -1.0 so it doesn't crash the script
+                left_val = max(-1.0, -2 * target_val)
+                right_wheel.value = target_val
+                left_wheel.value = left_val
 
-        # --- B. SENSOR LOGIC ---
-        # Reset speeds to 0 if no rotation is detected for 3 seconds
-        if time.time() - last_time > 3 and rpm != 0:
-            rpm, rps, speed_mps = 0.0, 0.0, 0.0
+            # --- B. SENSOR LOGIC ---
+            if time.time() - last_time > 3 and rpm != 0:
+                rpm, rps, speed_mps = 0.0, 0.0, 0.0
+                
+            # Print to terminal
+            print(f"Time: {elapsed_time:05.1f}s | Target Power: {target_val*100:05.1f}% | RPM: {rpm:05.2f} | RPS: {rps:04.2f} | Speed: {speed_mps:04.2f} m/s")
             
-        # Print current status
-        print(f"Time: {elapsed_time:04.1f}s | Target Power: {target_val*100:02.0f}% | RPM: {rpm:05.2f} | RPS: {rps:04.2f} | Speed: {speed_mps:04.2f} m/s")
-        
-        # Record the current data points for the plot
-        time_data.append(elapsed_time)
-        rpm_data.append(rpm)
-        rps_data.append(rps)
-        speed_data.append(speed_mps)
-        
+            # Append to internal lists for plotting
+            time_data.append(elapsed_time)
+            rpm_data.append(rpm)
+            rps_data.append(rps)
+            speed_data.append(speed_mps)
+            
+            # Write row to CSV and flush to save immediately
+            csv_writer.writerow([round(elapsed_time, 2), round(target_val*100, 2), round(rpm, 2), round(rps, 2), round(speed_mps, 2)])
+            csv_file.flush()
+            
+            time.sleep(0.5) 
+
+    except KeyboardInterrupt:
+        print("\nTest interrupted early by user.")
+
+    finally:
+        # ==========================================
+        # 5. Safe Teardown & Plotting
+        # ==========================================
+        print("\nStopping motors and cleaning up...")
+        left_wheel.mid()
+        right_wheel.mid()
         time.sleep(0.5) 
-
-except KeyboardInterrupt:
-    print("\nTest interrupted early by user.")
-
-finally:
-    # ==========================================
-    # 5. Safe Teardown & Plotting (Always Runs)
-    # ==========================================
-    print("\nStopping motors and cleaning up...")
-    left_wheel.mid()
-    right_wheel.mid()
-    time.sleep(0.5)  # Let motors fully stop before detaching
-    left_wheel.detach()
-    right_wheel.detach()
-    GPIO.cleanup()
-    
-    print("Generating plot...")
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 10))
-    
-    # Subplot 1: RPS (Top)
-    ax1.plot(time_data, rps_data, color='tab:green', linewidth=2)
-    ax1.set_ylabel('RPS')
-    ax1.set_xlabel('Time (seconds)')
-    ax1.set_title('Wheel Metrics Over Time (Automated Ramp)')
-    ax1.grid(True, linestyle='--', alpha=0.7)
-    
-    # Subplot 2: RPM (Middle)
-    time_data_mins = [t / 60.0 for t in time_data]
-    ax2.plot(time_data_mins, rpm_data, color='tab:red', linewidth=2)
-    ax2.set_ylabel('RPM')
-    ax2.set_xlabel('Time (minutes)')
-    ax2.grid(True, linestyle='--', alpha=0.7)
-    
-    # Subplot 3: Linear Speed (Bottom)
-    ax3.plot(time_data, speed_data, color='tab:blue', linewidth=2)
-    ax3.set_ylabel('Speed (m/s)')
-    ax3.set_xlabel('Time (seconds)')
-    ax3.grid(True, linestyle='--', alpha=0.7)
-    
-    plt.tight_layout()
-    
-    output_dir = os.path.expanduser("~/ESE4970/rpm_output_plots")
-    os.makedirs(output_dir, exist_ok=True) 
-    
-    timestamp = datetime.now().strftime("%m%d_%H%M%S")
-    output_filename = os.path.join(output_dir, f"wheel_metrics_{timestamp}.png")
-    
-    plt.savefig(output_filename, dpi=300)
-    print(f"Success! Plot saved to: {output_filename}")
+        left_wheel.detach()
+        right_wheel.detach()
+        GPIO.cleanup()
+        
+        print("Generating plot...")
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 10))
+        
+        ax1.plot(time_data, rps_data, color='tab:green', linewidth=2)
+        ax1.set_ylabel('RPS')
+        ax1.set_xlabel('Time (seconds)')
+        ax1.set_title('Wheel Metrics Over Time (Smooth Ramp)')
+        ax1.grid(True, linestyle='--', alpha=0.7)
+        
+        time_data_mins = [t / 60.0 for t in time_data]
+        ax2.plot(time_data_mins, rpm_data, color='tab:red', linewidth=2)
+        ax2.set_ylabel('RPM')
+        ax2.set_xlabel('Time (minutes)')
+        ax2.grid(True, linestyle='--', alpha=0.7)
+        
+        ax3.plot(time_data, speed_data, color='tab:blue', linewidth=2)
+        ax3.set_ylabel('Speed (m/s)')
+        ax3.set_xlabel('Time (seconds)')
+        ax3.grid(True, linestyle='--', alpha=0.7)
+        
+        plt.tight_layout()
+        plt.savefig(plot_filename, dpi=300)
+        
+        print(f"Success! CSV saved to: {csv_filename}")
+        print(f"Success! Plot saved to: {plot_filename}")
