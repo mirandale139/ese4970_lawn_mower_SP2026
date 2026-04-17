@@ -15,8 +15,8 @@ try:
     # We use a loop to slowly increase power to BOTH wheels
     for i in range(0, 21): # 0% to 20%
         val = i / 100
-        left_wheel.value = -2*val
         right_wheel.value = val
+        left_wheel.value = -2*val
         sleep(0.1)
     
     print("Moving...")

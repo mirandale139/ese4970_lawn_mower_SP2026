@@ -1,0 +1,58 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GPS Boundary</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+  <style>
+    #map {
+      height: 100vh;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+
+  var map = L.map('map').setView([38.648393166666665, -90.30240133333334], 18);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+  }).addTo(map);
+
+  var boundaryCoords = [
+    [38.648393166666665, -90.30240133333334],
+[38.647989833333334, -90.30242766666667],
+[38.6480215, -90.3029135],
+[38.648318, -90.3028765],
+[38.64830766666667, -90.30284283333333],
+[38.6484385, -90.30287366666667]
+  ];
+
+  var polygon = L.polygon(boundaryCoords, {
+      color: 'blue',
+      fillOpacity: 0.3
+  }).addTo(map);
+
+  // Add markers
+  boundaryCoords.forEach(function(coord, index) {
+      L.marker(coord).addTo(map)
+        .bindPopup("Corner " + (index+1));
+  });
+
+  map.fitBounds(polygon.getBounds());
+
+</script>
+
+</body>
+</html>

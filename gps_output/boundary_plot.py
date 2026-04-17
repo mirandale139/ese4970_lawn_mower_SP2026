@@ -1,7 +1,7 @@
 import csv
 
-input_file = "/home/gle/ESE4970/gps_output/gps_boundary_0416_lawn1.csv"
-output_file = "/home/gle/ESE4970/gps_output/boundary_map_0416_lawn1.html"
+input_file = "/home/gle/ESE4970/gps_output/gps_boundary_0416_lawn3.csv"
+output_file = "/home/gle/ESE4970/gps_output/boundary_map_0416_lawn3.html"
 
 points = []
 

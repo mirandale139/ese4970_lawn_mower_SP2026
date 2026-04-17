@@ -23,10 +23,10 @@ def move_robot(direction, duration=2):
         elif direction == "backward":
             left_wheel.value = val
             right_wheel.value = -2 * val
-        elif direction == "left":
+        elif direction == "right":
             left_wheel.value = 2 * val
             right_wheel.value = 2 * val
-        elif direction == "right":
+        elif direction == "left":
             left_wheel.value = -2*val
             right_wheel.value = -2*val
             
@@ -46,10 +46,10 @@ def move_robot(direction, duration=2):
         elif direction == "backward":
             left_wheel.value = val
             right_wheel.value = -2 * val
-        elif direction == "left":
+        elif direction == "right":
             left_wheel.value = 2 * val
             right_wheel.value = 2 * val
-        elif direction == "right":
+        elif direction == "left":
             left_wheel.value = -2*val
             right_wheel.value = -2*val
         sleep(0.05)
