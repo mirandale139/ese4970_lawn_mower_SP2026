@@ -49,9 +49,9 @@ def calculate_speed(channel):
     if last_time != 0:
         delta_t = current_time - last_time
         if delta_t > 0.05: 
-            rps = 1.0 / delta_t                       
-            rpm = rps * 60.0                          
-            speed_mps = rps * WHEEL_CIRCUMFERENCE_M   
+            rps = 1.0 / delta_t                        
+            rpm = rps * 60.0                           
+            speed_mps = rps * WHEEL_CIRCUMFERENCE_M    
             
     last_time = current_time
 
@@ -75,28 +75,28 @@ with open(csv_filename, mode='w', newline='') as csv_file:
         while True:
             elapsed_time = time.time() - start_time
             
-            # --- A. SMOOTH MOTOR CONTROL PROFILE (~3 Minutes) ---
+            # --- A. STEPPED MOTOR CONTROL PROFILE (2 Minutes) ---
             if elapsed_time < 3:
                 # 0 to 3s: Arming sequence
                 target_val = 0.0   
-            elif elapsed_time < 78:
-                # 3s to 78s (1m 15s): Smoothly ramp from 0 to 0.90
-                target_val = (elapsed_time - 3) * (0.90 / 75.0)
-            elif elapsed_time < 108:
-                # 78s to 108s (30s hold): Hold steady at 70%
-                target_val = 0.70  
-            elif elapsed_time < 183:
-                # 108s to 183s (1m 15s): Smoothly ramp down from 0.90 to 0
-                target_val = 0.90 - ((elapsed_time - 108) * (0.90 / 75.0))
-            elif elapsed_time < 188:
-                # 183s to 188s: Final 5-second dead stop before exit
+            elif elapsed_time < 42:
+                # 3s to 42s (~39s): 15% power
+                target_val = 0.15
+            elif elapsed_time < 81:
+                # 42s to 81s (~39s): 45% power
+                target_val = 0.45  
+            elif elapsed_time < 120:
+                # 81s to 120s (~39s): 15% power
+                target_val = 0.15
+            elif elapsed_time < 125:
+                # 120s to 125s: Final 5-second dead stop before exit
                 target_val = 0.0
             else:
-                print("3-minute smooth ramp test complete!")
+                print("2-minute step test complete!")
                 break
                 
-            # Safety clamp to ensure values strictly stay between 0.0 and 0.90
-            target_val = max(0.0, min(0.90, target_val))
+            # Safety clamp to ensure values strictly stay between 0.0 and 1.0
+            target_val = max(0.0, min(1.0, target_val))
                     
             # Apply to motors
             if target_val == 0.0:
@@ -125,7 +125,7 @@ with open(csv_filename, mode='w', newline='') as csv_file:
             csv_writer.writerow([round(elapsed_time, 2), round(target_val*100, 2), round(rpm, 2), round(rps, 2), round(speed_mps, 2)])
             csv_file.flush()
             
-            time.sleep(0.5) 
+            time.sleep(0.1) 
 
     except KeyboardInterrupt:
         print("\nTest interrupted early by user.")
@@ -148,7 +148,7 @@ with open(csv_filename, mode='w', newline='') as csv_file:
         ax1.plot(time_data, rps_data, color='tab:green', linewidth=2)
         ax1.set_ylabel('RPS')
         ax1.set_xlabel('Time (seconds)')
-        ax1.set_title('Wheel Metrics Over Time (Smooth Ramp)')
+        ax1.set_title('Wheel Metrics Over Time (Step Test)')
         ax1.grid(True, linestyle='--', alpha=0.7)
         
         time_data_mins = [t / 60.0 for t in time_data]
